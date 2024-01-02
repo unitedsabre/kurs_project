@@ -101,16 +101,12 @@ public class UserServiceImpl implements UserService {
         if (user != null) {
             Role role = roleRepository.findByName(roleName);
             if (role != null) {
-                // Remove existing roles for the user to ensure uniqueness
                 user.getRoles().clear();
-                // Add the new role to the user's roles
                 user.getRoles().add(role);
                 userRepository.save(user);
             } else {
-                // Handle case when role does not exist
             }
         } else {
-            // Handle case when user does not exist
         }
     }
 }
