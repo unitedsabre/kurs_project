@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -25,10 +27,15 @@ public class Shop {
     @Column(name = "address")
     private String address;
 
-    @Column(name = "availability")
-    private String availability;
-
     @Column(name = "created")
     private String created;
+
+    @ManyToMany
+    @JoinTable(
+            name = "shop_books",
+            joinColumns = @JoinColumn(name = "shop_id"),
+            inverseJoinColumns = @JoinColumn(name = "book_id")
+    )
+    private Set<Book> books = new HashSet<>();
 
 }

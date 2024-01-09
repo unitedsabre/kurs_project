@@ -57,8 +57,12 @@
         <tr th:each="shop: ${shops}">
             <td th:text="${shop.name}" />
             <td th:text="${shop.address}" />
-            <td th:text="${shop.availability}" />
-
+            <td>
+                <form th:action="@{/showShopDetails}" method="get">
+                    <input type="hidden" name="shopId" th:value="${shop.id}">
+                    <button type="submit" class="btn btn-primary">View Books</button>
+                </form>
+            </td>
             <td>
                 <a th:href="@{/showUpdateFormShop(shopId=${shop.id})}" class="btn btn-info">Update</a>
 
@@ -77,7 +81,7 @@
         $("#shopTable").DataTable({
             'aoColumnDefs': [{
                 'bSortable': false,
-                'aTargets': [-1] /* 1st one, start by the right */
+                'aTargets': [-1]
             }]
         });
     })

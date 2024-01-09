@@ -11,10 +11,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 import urfu.test_kurs.config.AuthenticationFacade;
+import urfu.test_kurs.entity.Book;
 import urfu.test_kurs.entity.Shop;
+import urfu.test_kurs.repository.BookRepository;
 import urfu.test_kurs.repository.ShopRepository;
 import urfu.test_kurs.service.UserActionLogService;
 
+import java.util.List;
 import java.util.Optional;
 @Slf4j
 @Controller
@@ -28,8 +31,11 @@ public class ShopController {
     @Autowired
     private UserActionLogService userActionLogService;
 
+    @Autowired
+    private BookRepository bookRepository;
+
     @GetMapping("/list-shops")
-    public ModelAndView getAllBooks() {
+    public ModelAndView getAllShops() {
         log.info("/list -> connection");
         ModelAndView mav = new ModelAndView("list-shops");
         mav.addObject("shops", shopRepository.findAll());
@@ -49,7 +55,7 @@ public class ShopController {
         }
     }
     @PostMapping("/saveShop")
-    public String saveBook(@ModelAttribute Shop shop) {
+    public String saveShop(@ModelAttribute Shop shop) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentPrincipalName = authentication.getName();
         shop.setCreated(currentPrincipalName);
@@ -90,6 +96,54 @@ public class ShopController {
                     (shop.getCreated().equals(currentPrincipalName))) {
                 shopRepository.deleteById(shopId);
                 userActionLogService.logAction(currentPrincipalName, "Удаление магазина");
+            }
+        }
+        return "redirect:/list-shops";
+    }
+
+    @GetMapping ("/showShopDetails")
+    public ModelAndView showShopDetails(@RequestParam Long shopId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentPrincipalName = authentication.getName();
+        Optional<Shop> optionalShop = shopRepository.findById(shopId);
+        List<Book> allBooks = bookRepository.findAll();
+        if (optionalShop.isPresent()) {
+            Shop shop = optionalShop.get();
+            if (authentication.getAuthorities().stream()
+                    .anyMatch(r -> r.getAuthority().equals("ADMIN")) ||
+                    (shop.getCreated().equals(currentPrincipalName))) {
+                ModelAndView mav = new ModelAndView("shop-details");
+                mav.addObject("shop", shop);
+                mav.addObject("books", shop.getBooks());
+                mav.addObject("allBooks", allBooks);
+                userActionLogService.logAction(currentPrincipalName, "Просмотр списка доступных книг");
+                return mav;
+            } else {
+                return new ModelAndView("redirect:/list-shops");
+            }
+        } else {
+            return new ModelAndView("redirect:/list-shops");
+        }
+    }
+
+    @PostMapping("/addExistingBookToShop")
+    public String addExistingBookToShop(@RequestParam Long shopId, @RequestParam Long bookId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentPrincipalName = authentication.getName();
+        Optional<Shop> shopOptional = shopRepository.findById(shopId);
+        Optional<Book> bookOptional = bookRepository.findById(bookId);
+
+        if (shopOptional.isPresent() && bookOptional.isPresent()) {
+            Shop shop = shopOptional.get();
+            Book book = bookOptional.get();
+
+            if (!shop.getBooks().contains(book)) {
+                shop.getBooks().add(book);
+                shopRepository.save(shop);
+                userActionLogService.logAction(currentPrincipalName, "Добавление книги в список");
+                return "redirect:/showShopDetails?shopId=" + shopId;
+            } else {
+                return "redirect:/list-shops";
             }
         }
         return "redirect:/list-shops";
